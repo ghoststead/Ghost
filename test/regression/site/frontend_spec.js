@@ -255,7 +255,7 @@ describe('Frontend Routing', function () {
                         $('title').text().should.equal('Not finished yet');
                         // @TODO: use theme from fixtures and don't rely on content/themes/casper
                         // $('.content .post').length.should.equal(1);
-                        // $('.poweredby').text().should.equal('Proudly published with Ghost');
+                        // $('.poweredby').text().should.equal('Powered by Ghoststead');
                         // $('body.post-template').length.should.equal(1);
                         // $('article.post').length.should.equal(1);
 
