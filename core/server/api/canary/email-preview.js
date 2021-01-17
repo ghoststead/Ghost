@@ -31,16 +31,17 @@ module.exports = {
                         });
                     }
 
-                    return mega.postEmailSerializer.serialize(model, {isBrowserPreview: true}).then(({emailTmpl, replacements}) => {
-                        // perform replacements using no member data
+                    return mega.postEmailSerializer.serialize(model, {isBrowserPreview: true}).then((emailContent) => {
+                        const replacements = mega.postEmailSerializer.parseReplacements(emailContent);
+
                         replacements.forEach((replacement) => {
-                            emailTmpl[replacement.format] = emailTmpl[replacement.format].replace(
+                            emailContent[replacement.format] = emailContent[replacement.format].replace(
                                 replacement.match,
                                 replacement.fallback || ''
                             );
                         });
 
-                        return emailTmpl;
+                        return emailContent;
                     });
                 });
         }
@@ -71,7 +72,9 @@ module.exports = {
             const response = await mega.mega.sendTestEmail(model, emails);
             if (response && response[0] && response[0].error) {
                 throw new errors.EmailError({
-                    message: response[0].error.message
+                    statusCode: response[0].error.statusCode,
+                    message: response[0].error.message,
+                    context: response[0].error.originalMessage
                 });
             }
             return response;

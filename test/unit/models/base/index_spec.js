@@ -3,7 +3,7 @@ const should = require('should');
 const sinon = require('sinon');
 const _ = require('lodash');
 const Promise = require('bluebird');
-const security = require('../../../../core/server/lib/security');
+const security = require('@tryghost/security');
 const models = require('../../../../core/server/models');
 const urlUtils = require('../../../../core/shared/url-utils');
 const testUtils = require('../../../utils');
@@ -67,8 +67,8 @@ describe('Models: base', function () {
             security.string.safe.withArgs(slug).returns(slug);
 
             return models.Base.Model.generateSlug(Model, slug, options)
-                .then((slug) => {
-                    slug.should.eql(new Array(186).join('a'));
+                .then((generatedSlug) => {
+                    generatedSlug.should.eql(new Array(186).join('a'));
                 });
         });
 
@@ -79,8 +79,8 @@ describe('Models: base', function () {
             security.string.safe.withArgs(slug).returns(slug);
 
             return models.Base.Model.generateSlug(Model, slug, options)
-                .then((slug) => {
-                    slug.should.eql('upsi-tableName');
+                .then((generatedSlug) => {
+                    generatedSlug.should.eql('upsi-tableName');
                 });
         });
 
@@ -95,8 +95,8 @@ describe('Models: base', function () {
             security.string.safe.withArgs(slug).returns(slug);
 
             return models.Base.Model.generateSlug(Model, slug, options)
-                .then((slug) => {
-                    slug.should.eql('hash-#lul');
+                .then((generatedSlug) => {
+                    generatedSlug.should.eql('hash-#lul');
                 });
         });
 

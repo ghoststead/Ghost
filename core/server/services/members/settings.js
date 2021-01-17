@@ -6,6 +6,9 @@ const settingsCache = require('../settings/cache');
 const logging = require('../../../shared/logging');
 const mail = require('../mail');
 const updateEmailTemplate = require('./emails/updateEmail');
+const SingleUseTokenProvider = require('./SingleUseTokenProvider');
+const models = require('../../models');
+const MAGIC_LINK_TOKEN_VALIDITY = 24 * 60 * 60 * 1000;
 
 const ghostMailer = new mail.GhostMailer();
 
@@ -17,7 +20,7 @@ function createSettingsInstance(config) {
                     logging.warn(message.text);
                 }
                 let msg = Object.assign({
-                    from: config.getEmailFromAddress(),
+                    from: config.getAuthEmailFromAddress(),
                     subject: 'Update email address',
                     forceTextContent: true
                 }, message);
@@ -36,7 +39,7 @@ function createSettingsInstance(config) {
 
             ${url}
 
-            For your security, the link will expire in 10 minutes time.
+            For your security, the link will expire in 24 hours time.
 
             ---
 
@@ -63,28 +66,48 @@ function createSettingsInstance(config) {
 
     const magicLinkService = new MagicLink({
         transporter,
-        secret: config.getAuthSecret(),
+        tokenProvider: new SingleUseTokenProvider(models.SingleUseToken, MAGIC_LINK_TOKEN_VALIDITY),
         getSigninURL,
         getText,
         getHTML,
         getSubject
     });
 
-    const sendFromAddressUpdateMagicLink = ({email, payload = {}}) => {
-        return magicLinkService.sendMagicLink({email, payload, subject: email, type: 'updateFromAddress'});
+    const sendEmailAddressUpdateMagicLink = ({email, type = 'fromAddressUpdate'}) => {
+        const [,toDomain] = email.split('@');
+        let fromEmail = `noreply@${toDomain}`;
+        if (fromEmail === email) {
+            fromEmail = `no-reply@${toDomain}`;
+        }
+        magicLinkService.transporter = {
+            sendMail(message) {
+                if (process.env.NODE_ENV !== 'production') {
+                    logging.warn(message.text);
+                }
+                let msg = Object.assign({
+                    from: fromEmail,
+                    subject: 'Update email address',
+                    forceTextContent: true
+                }, message);
+
+                return ghostMailer.send(msg);
+            }
+        };
+        return magicLinkService.sendMagicLink({email, tokenData: {email}, subject: email, type});
     };
 
-    const getEmailFromToken = ({token}) => {
-        return magicLinkService.getUserFromToken(token);
+    const getEmailFromToken = async ({token}) => {
+        const data = await magicLinkService.getDataFromToken(token);
+        return data.email;
     };
 
-    const getAdminRedirectLink = () => {
+    const getAdminRedirectLink = ({type}) => {
         const adminUrl = urlUtils.urlFor('admin', true);
-        return urlUtils.urlJoin(adminUrl, '#/settings/labs/?fromAddressUpdate=success');
+        return urlUtils.urlJoin(adminUrl, `#/settings/labs/members/?${type}=success`);
     };
 
     return {
-        sendFromAddressUpdateMagicLink,
+        sendEmailAddressUpdateMagicLink,
         getEmailFromToken,
         getAdminRedirectLink
     };

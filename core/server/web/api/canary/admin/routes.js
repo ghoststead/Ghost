@@ -61,8 +61,8 @@ module.exports = function apiRoutes() {
     router.get('/settings', mw.authAdminApi, http(apiCanary.settings.browse));
     router.get('/settings/:key', mw.authAdminApi, http(apiCanary.settings.read));
     router.put('/settings', mw.authAdminApi, http(apiCanary.settings.edit));
-    router.get('/settings/members/email', http(apiCanary.settings.validateMembersFromEmail));
-    router.post('/settings/members/email', mw.authAdminApi, http(apiCanary.settings.updateMembersFromEmail));
+    router.get('/settings/members/email', http(apiCanary.settings.validateMembersEmailUpdate));
+    router.post('/settings/members/email', mw.authAdminApi, http(apiCanary.settings.updateMembersEmail));
     router.del('/settings/stripe/connect', mw.authAdminApi, http(apiCanary.settings.disconnectStripeConnectIntegration));
 
     // ## Users
@@ -71,10 +71,12 @@ module.exports = function apiRoutes() {
     router.get('/users/slug/:slug', mw.authAdminApi, http(apiCanary.users.read));
     // NOTE: We don't expose any email addresses via the public api.
     router.get('/users/email/:email', mw.authAdminApi, http(apiCanary.users.read));
+    router.get('/users/:id/token', mw.authAdminApi, http(apiCanary.users.readToken));
 
     router.put('/users/password', mw.authAdminApi, http(apiCanary.users.changePassword));
     router.put('/users/owner', mw.authAdminApi, http(apiCanary.users.transferOwnership));
     router.put('/users/:id', mw.authAdminApi, http(apiCanary.users.edit));
+    router.put('/users/:id/token', mw.authAdminApi, http(apiCanary.users.regenerateToken));
     router.del('/users/:id', mw.authAdminApi, http(apiCanary.users.destroy));
 
     // ## Tags
@@ -91,7 +93,6 @@ module.exports = function apiRoutes() {
 
     router.get('/members/stats', shared.middlewares.labs.members, mw.authAdminApi, http(apiCanary.members.stats));
 
-    router.post('/members/upload/validate', shared.middlewares.labs.members, mw.authAdminApi, http(apiCanary.members.validateImport));
     router.get('/members/upload', shared.middlewares.labs.members, mw.authAdminApi, http(apiCanary.members.exportCSV));
     router.post('/members/upload',
         shared.middlewares.labs.members,
@@ -108,6 +109,8 @@ module.exports = function apiRoutes() {
     router.get('/members/:id', shared.middlewares.labs.members, mw.authAdminApi, http(apiCanary.members.read));
     router.put('/members/:id', shared.middlewares.labs.members, mw.authAdminApi, http(apiCanary.members.edit));
     router.del('/members/:id', shared.middlewares.labs.members, mw.authAdminApi, http(apiCanary.members.destroy));
+
+    router.put('/members/:id/subscriptions/:subscription_id', shared.middlewares.labs.members, mw.authAdminApi, http(apiCanary.members.editSubscription));
 
     router.get('/members/:id/signin_urls', shared.middlewares.labs.members, mw.authAdminApi, http(apiCanary.memberSigninUrls.read));
 
@@ -217,9 +220,18 @@ module.exports = function apiRoutes() {
     router.post('/invites', mw.authAdminApi, http(apiCanary.invites.add));
     router.del('/invites/:id', mw.authAdminApi, http(apiCanary.invites.destroy));
 
-    // ## Redirects (JSON based)
+    // ## Redirects
+    // TODO: yaml support has been added to https://github.com/TryGhost/Ghost/issues/11085
+    // The `/json` endpoints below are left for backward compatibility. They'll be removed in v4.
     router.get('/redirects/json', mw.authAdminApi, http(apiCanary.redirects.download));
     router.post('/redirects/json',
+        mw.authAdminApi,
+        apiMw.upload.single('redirects'),
+        apiMw.upload.validation({type: 'redirects'}),
+        http(apiCanary.redirects.upload)
+    );
+    router.get('/redirects/download', mw.authAdminApi, http(apiCanary.redirects.download));
+    router.post('/redirects/upload',
         mw.authAdminApi,
         apiMw.upload.single('redirects'),
         apiMw.upload.validation({type: 'redirects'}),
@@ -244,6 +256,13 @@ module.exports = function apiRoutes() {
     // ## Emails
     router.get('/emails/:id', mw.authAdminApi, http(apiCanary.emails.read));
     router.put('/emails/:id/retry', mw.authAdminApi, http(apiCanary.emails.retry));
+
+    // ## Snippets
+    router.get('/snippets', mw.authAdminApi, http(apiCanary.snippets.browse));
+    router.get('/snippets/:id', mw.authAdminApi, http(apiCanary.snippets.read));
+    router.post('/snippets', mw.authAdminApi, http(apiCanary.snippets.add));
+    router.put('/snippets/:id', mw.authAdminApi, http(apiCanary.snippets.edit));
+    router.del('/snippets/:id', mw.authAdminApi, http(apiCanary.snippets.destroy));
 
     return router;
 };

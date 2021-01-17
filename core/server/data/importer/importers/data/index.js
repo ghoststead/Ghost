@@ -3,7 +3,7 @@ const Promise = require('bluebird');
 const semver = require('semver');
 const {IncorrectUsageError} = require('@tryghost/errors');
 const debug = require('ghost-ignition').debug('importer:data');
-const sequence = require('../../../../lib/promise/sequence');
+const {sequence} = require('@tryghost/promise');
 const models = require('../../../../models');
 const PostsImporter = require('./posts');
 const TagsImporter = require('./tags');
@@ -147,9 +147,9 @@ DataImporter = {
             });
 
             return toReturn;
-        }).catch(function (errors) {
-            debug(errors);
-            return Promise.reject(errors);
+        }).catch(function (err) {
+            debug(err);
+            return Promise.reject(err);
         }).finally(() => {
             // release memory
             importers = {};

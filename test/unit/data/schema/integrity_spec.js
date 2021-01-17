@@ -1,14 +1,25 @@
 const should = require('should');
 const _ = require('lodash');
+const yaml = require('js-yaml');
 const crypto = require('crypto');
+const fs = require('fs-extra');
+const path = require('path');
+const {config} = require('../../../utils/configUtils');
 const schema = require('../../../../core/server/data/schema');
 const fixtures = require('../../../../core/server/data/schema/fixtures');
+const frontendSettings = require('../../../../core/frontend/services/settings');
+const validateFrontendSettings = require('../../../../core/frontend/services/settings/validate');
 const defaultSettings = require('../../../../core/server/data/schema/default-settings');
 
 /**
  * @NOTE
  *
- * If this test fails for you, you have modified the database schema or fixtures or default settings.
+ * If this test fails for you, you have modified one of:
+ * - the database schema
+ * - fixtures
+ * - default settings
+ * - routes.yaml
+ *
  * When you make a change, please test that:
  *
  * 1. A new blog get's installed and the database looks correct and complete.
@@ -21,17 +32,22 @@ const defaultSettings = require('../../../../core/server/data/schema/default-set
  */
 describe('DB version integrity', function () {
     // Only these variables should need updating
-    const currentSchemaHash = '134c9de4e59b31ec6b73f03638a01396';
-    const currentFixturesHash = '3d942c46e8487c4aee1e9ac898ed29ca';
-    const currentSettingsHash = 'b0291920e168e74cf63a1919cd594fd6';
+    const currentSchemaHash = 'c61ecbc8c11f62d1d350c66ee1ac3151';
+    const currentFixturesHash = 'd46d696c94d03e41a5903500547fea77';
+    const currentSettingsHash = 'd3821715e4b34d92d6ba6ed0d4918f5c';
+    const currentRoutesHash = '3d180d52c663d173a6be791ef411ed01';
 
     // If this test is failing, then it is likely a change has been made that requires a DB version bump,
     // and the values above will need updating as confirmation
     it('should not change without fixing this test', function () {
+        const routesPath = path.join(config.get('paths').defaultSettings, 'default-routes.yaml');
+        const defaultRoutes = validateFrontendSettings(yaml.safeLoad(fs.readFileSync(routesPath, 'utf-8')));
+
         const tablesNoValidation = _.cloneDeep(schema.tables);
         let schemaHash;
         let fixturesHash;
         let settingsHash;
+        let routesHash;
 
         _.each(tablesNoValidation, function (table) {
             return _.each(table, function (column, name) {
@@ -42,9 +58,12 @@ describe('DB version integrity', function () {
         schemaHash = crypto.createHash('md5').update(JSON.stringify(tablesNoValidation), 'binary').digest('hex');
         fixturesHash = crypto.createHash('md5').update(JSON.stringify(fixtures), 'binary').digest('hex');
         settingsHash = crypto.createHash('md5').update(JSON.stringify(defaultSettings), 'binary').digest('hex');
+        routesHash = crypto.createHash('md5').update(JSON.stringify(defaultRoutes), 'binary').digest('hex');
 
         schemaHash.should.eql(currentSchemaHash);
         fixturesHash.should.eql(currentFixturesHash);
         settingsHash.should.eql(currentSettingsHash);
+        routesHash.should.eql(currentRoutesHash);
+        routesHash.should.eql(frontendSettings.getDefaulHash('routes'));
     });
 });

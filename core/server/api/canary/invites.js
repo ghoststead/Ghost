@@ -2,7 +2,7 @@ const Promise = require('bluebird');
 const {i18n} = require('../../lib/common');
 const logging = require('../../../shared/logging');
 const errors = require('@tryghost/errors');
-const security = require('../../lib/security');
+const security = require('@tryghost/security');
 const mailService = require('../../services/mail');
 const urlUtils = require('../../../shared/url-utils');
 const settingsCache = require('../../services/settings/cache');
@@ -116,18 +116,18 @@ module.exports = {
 
             // CASE: ensure we destroy the invite before
             return models.Invite.findOne({email: frame.data.invites[0].email}, frame.options)
-                .then((invite) => {
-                    if (!invite) {
+                .then((existingInvite) => {
+                    if (!existingInvite) {
                         return;
                     }
 
-                    return invite.destroy(frame.options);
+                    return existingInvite.destroy(frame.options);
                 })
                 .then(() => {
                     return models.Invite.add(frame.data.invites[0], frame.options);
                 })
-                .then((_invite) => {
-                    invite = _invite;
+                .then((createdInvite) => {
+                    invite = createdInvite;
 
                     const adminUrl = urlUtils.urlFor('admin', true);
 
@@ -163,8 +163,8 @@ module.exports = {
                         status: 'sent'
                     }, Object.assign({id: invite.id}, frame.options));
                 })
-                .then((invite) => {
-                    return invite;
+                .then((editedInvite) => {
+                    return editedInvite;
                 })
                 .catch((err) => {
                     if (err && err.errorType === 'EmailError') {

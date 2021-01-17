@@ -1,6 +1,6 @@
 const sinon = require('sinon');
 const testUtils = require('../../../../utils');
-const security = require('../../../../../core/server/lib/security');
+const security = require('@tryghost/security');
 const settingsCache = require('../../../../../core/server/services/settings/cache');
 const controllers = require('../../../../../core/frontend/services/routing/controllers');
 const helpers = require('../../../../../core/frontend/services/routing/helpers');
@@ -65,7 +65,7 @@ describe('Unit - services/routing/controllers/rss', function () {
             posts: posts
         });
 
-        rssService.render.callsFake(function (res, baseUrl, data) {
+        rssService.render.callsFake(function (_res, baseUrl, data) {
             baseUrl.should.eql('/rss/');
             data.posts.should.eql(posts);
             data.title.should.eql('Ghost');

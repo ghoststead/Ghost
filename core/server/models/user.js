@@ -6,9 +6,9 @@ const ghostBookshelf = require('./base');
 const baseUtils = require('./base/utils');
 const {i18n} = require('../lib/common');
 const errors = require('@tryghost/errors');
-const security = require('../lib/security');
+const security = require('@tryghost/security');
 const {gravatar} = require('../lib/image');
-const pipeline = require('../lib/promise/pipeline');
+const {pipeline} = require('@tryghost/promise');
 const validation = require('../data/validation');
 const permissions = require('../services/permissions');
 const activeStates = ['active', 'warn-1', 'warn-2', 'warn-3', 'warn-4'];
@@ -245,8 +245,12 @@ User = ghostBookshelf.Model.extend({
         return this.belongsToMany('Role');
     },
 
-    permissions: function permissions() {
+    permissions: function permissionsFn() {
         return this.belongsToMany('Permission');
+    },
+
+    apiKeys() {
+        return this.hasMany('ApiKey', 'user_id');
     },
 
     hasRole: function hasRole(roleName) {

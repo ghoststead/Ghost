@@ -7,7 +7,7 @@ const errors = require('@tryghost/errors');
 
 // App requires
 const config = require('../../../shared/config');
-const constants = require('../../lib/constants');
+const constants = require('@tryghost/constants');
 const storage = require('../../adapters/storage');
 const urlService = require('../../../frontend/services/url');
 const urlUtils = require('../../../shared/url-utils');
@@ -31,7 +31,7 @@ const corsOptionsDelegate = function corsOptionsDelegate(req, callback) {
         credentials: true // required to allow admin-client to login to private sites
     };
 
-    if (!origin) {
+    if (!origin || origin === 'null') {
         return callback(null, corsOptions);
     }
 
@@ -95,14 +95,6 @@ module.exports = function setupSiteApp(options = {}) {
     // @TODO make sure all of these have a local 404 error handler
     // Favicon
     siteApp.use(mw.serveFavicon());
-
-    // /public/members.js
-    siteApp.get('/public/members.js', shared.middlewares.labs.members,
-        mw.servePublicFile('public/members.js', 'application/javascript', constants.ONE_YEAR_S));
-
-    // /public/members.min.js
-    siteApp.get('/public/members.min.js', shared.middlewares.labs.members,
-        mw.servePublicFile('public/members.min.js', 'application/javascript', constants.ONE_YEAR_S));
 
     // Serve sitemap.xsl file
     siteApp.use(mw.servePublicFile('sitemap.xsl', 'text/xsl', constants.ONE_DAY_S));

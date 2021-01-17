@@ -8,7 +8,7 @@ const keyGroupMapper = require('../../../../api/shared/serializers/input/utils/s
 const keyTypeMapper = require('../../../../api/shared/serializers/input/utils/settings-key-type-mapper');
 
 const labsDefaults = JSON.parse(defaultSettings.labs.labs.defaultValue);
-const ignoredSettings = ['active_apps', 'installed_apps'];
+const ignoredSettings = ['active_apps', 'installed_apps', 'members_from_address', 'members_support_address'];
 const deprecatedSupportedSettingsMap = {
     default_locale: 'lang',
     active_timezone: 'timezone',
@@ -75,7 +75,7 @@ class SettingsImporter extends BaseImporter {
             });
         }
 
-        // Don't import any old, deprecated settings
+        // Don't import any old, deprecated or excluded settings
         this.dataToImport = _.filter(this.dataToImport, (data) => {
             return !_.includes(ignoredSettings, data.key);
         });
@@ -143,7 +143,7 @@ class SettingsImporter extends BaseImporter {
             }
 
             // CASE: we do not import "from address" for members settings as that needs to go via validation with magic link
-            if (obj.key === 'members_from_address') {
+            if ((obj.key === 'members_from_address') || (obj.key === 'members_support_address')) {
                 obj.value = null;
             }
 

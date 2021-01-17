@@ -39,10 +39,10 @@ const addAction = (model, event, options) => {
         return;
     }
 
-    const action = model.getAction(event, options);
+    const existingAction = model.getAction(event, options);
 
     // CASE: model does not support action for target event
-    if (!action) {
+    if (!existingAction) {
         return;
     }
 
@@ -66,10 +66,10 @@ const addAction = (model, event, options) => {
                 return;
             }
 
-            insert(action);
+            insert(existingAction);
         });
     } else {
-        insert(action);
+        insert(existingAction);
     }
 };
 
@@ -90,6 +90,10 @@ const ApiKey = ghostBookshelf.Model.extend({
 
     integration() {
         return this.belongsTo('Integration');
+    },
+
+    user() {
+        return this.belongsTo('User');
     },
 
     format(attrs) {

@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const debug = require('ghost-ignition').debug('frontend:services:settings:validate');
-const {i18n} = require('../../../server/lib/common');
+const {i18n} = require('../proxy');
 const errors = require('@tryghost/errors');
 const themeService = require('../themes');
 const _private = {};
@@ -115,11 +115,11 @@ _private.validateData = function validateData(object) {
                 const longForm = shortToLongForm(object.data[key], {resourceKey: key});
                 data.query = _.merge(data.query, longForm.query);
 
-                _.each(Object.keys(longForm.router), (key) => {
-                    if (data.router[key]) {
-                        data.router[key] = data.router[key].concat(longForm.router[key]);
+                _.each(Object.keys(longForm.router), (routerKey) => {
+                    if (data.router[routerKey]) {
+                        data.router[routerKey] = data.router[routerKey].concat(longForm.router[routerKey]);
                     } else {
-                        data.router[key] = longForm.router[key];
+                        data.router[routerKey] = longForm.router[routerKey];
                     }
                 });
 
@@ -402,6 +402,7 @@ _private.validateTaxonomies = function validateTaxonomies(taxonomies) {
 
 /**
  * Validate and sanitize the routing object.
+ * NOTE: mutates the object even if it's a valid configuration
  */
 module.exports = function validate(object) {
     if (!object) {

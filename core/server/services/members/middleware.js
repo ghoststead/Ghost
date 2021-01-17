@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const logging = require('../../../shared/logging');
-const config = require('../../../shared/config');
 const labsService = require('../labs');
 const membersService = require('./index');
 const urlUtils = require('../../../shared/url-utils');
@@ -71,8 +70,13 @@ const updateMemberData = async function (req, res) {
         const data = _.pick(req.body, 'name', 'subscribed');
         const member = await membersService.ssr.getMemberDataFromSession(req, res);
         if (member) {
-            const updatedMember = await membersService.api.members.update(data, {id: member.id});
-            res.json(formattedMemberResponse(updatedMember));
+            const options = {
+                id: member.id,
+                withRelated: ['stripeSubscriptions', 'stripeSubscriptions.customer']
+            };
+            const updatedMember = await membersService.api.members.update(data, options);
+
+            res.json(formattedMemberResponse(updatedMember.toJSON()));
         } else {
             res.json(null);
         }
@@ -85,11 +89,17 @@ const updateMemberData = async function (req, res) {
 
 const getMemberSiteData = async function (req, res) {
     const isStripeConfigured = membersService.config.isStripeConnected();
-
+    const domain = urlUtils.urlFor('home', true).match(new RegExp('^https?://([^/:?#]+)(?:[/:?#]|$)', 'i'));
+    const blogDomain = domain && domain[1];
+    let supportAddress = settingsCache.get('members_support_address') || 'noreply';
+    if (!supportAddress.includes('@')) {
+        supportAddress = `${supportAddress}@${blogDomain}`;
+    }
     const response = {
         title: settingsCache.get('title'),
         description: settingsCache.get('description'),
         logo: settingsCache.get('logo'),
+        icon: settingsCache.get('icon'),
         accent_color: settingsCache.get('accent_color'),
         url: urlUtils.urlFor('home', true),
         version: ghostVersion.safe,
@@ -101,13 +111,9 @@ const getMemberSiteData = async function (req, res) {
         portal_plans: settingsCache.get('portal_plans'),
         portal_button_icon: settingsCache.get('portal_button_icon'),
         portal_button_signup_text: settingsCache.get('portal_button_signup_text'),
-        portal_button_style: settingsCache.get('portal_button_style')
+        portal_button_style: settingsCache.get('portal_button_style'),
+        members_support_address: supportAddress
     };
-
-    // accent_color is currently an experimental feature
-    if (!config.get('enableDeveloperExperiments')) {
-        delete response.accent_color;
-    }
 
     res.json({site: response});
 };
@@ -126,20 +132,40 @@ const createSessionFromMagicLink = async function (req, res, next) {
         }
     });
 
-    // We need to include the subdirectory,
-    // members is already removed from the path by express because it's a mount path
-    let redirectPath = `${urlUtils.getSubdir()}${req.path}`;
-
     try {
-        await membersService.ssr.exchangeTokenForSession(req, res);
+        const member = await membersService.ssr.exchangeTokenForSession(req, res);
+        const subscriptions = member && member.stripe && member.stripe.subscriptions || [];
 
-        // Do a standard 302 redirect, with success=true
+        const action = req.query.action || req.query['portal-action'];
+
+        if (action === 'signup') {
+            let customRedirect = '';
+            if (subscriptions.find(sub => ['active', 'trialing'].includes(sub.status))) {
+                customRedirect = settingsCache.get('members_paid_signup_redirect') || '';
+            } else {
+                customRedirect = settingsCache.get('members_free_signup_redirect') || '';
+            }
+
+            if (customRedirect && customRedirect !== '/') {
+                const baseUrl = urlUtils.getSiteUrl();
+                const ensureEndsWith = (string, endsWith) => (string.endsWith(endsWith) ? string : string + endsWith);
+                const removeLeadingSlash = string => string.replace(/^\//, '');
+
+                const redirectUrl = new URL(removeLeadingSlash(ensureEndsWith(customRedirect, '/')), ensureEndsWith(baseUrl, '/'));
+
+                return res.redirect(redirectUrl.href);
+            }
+        }
+
+        // Do a standard 302 redirect to the homepage, with success=true
         searchParams.set('success', true);
+        res.redirect(`${urlUtils.getSubdir()}/?${searchParams.toString()}`);
     } catch (err) {
         logging.warn(err.message);
+
+        // Do a standard 302 redirect to the homepage, with success=false
         searchParams.set('success', false);
-    } finally {
-        res.redirect(`${redirectPath}?${searchParams.toString()}`);
+        res.redirect(`${urlUtils.getSubdir()}/?${searchParams.toString()}`);
     }
 };
 

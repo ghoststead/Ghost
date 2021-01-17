@@ -40,6 +40,9 @@ function addTableColumn(tableName, table, columnName, columnSpec = schema[tableN
         // check if table exists?
         column.references(columnSpec.references);
     }
+    if (Object.prototype.hasOwnProperty.call(columnSpec, 'cascadeDelete') && columnSpec.cascadeDelete === true) {
+        column.onDelete('CASCADE');
+    }
     if (Object.prototype.hasOwnProperty.call(columnSpec, 'defaultTo')) {
         column.defaultTo(columnSpec.defaultTo);
     }
@@ -84,9 +87,20 @@ function createTable(table, transaction) {
             }
 
             return (transaction || db.knex).schema.createTable(table, function (t) {
+                let tableIndexes = [];
+
                 const columnKeys = _.keys(schema[table]);
                 _.each(columnKeys, function (column) {
+                    if (column === '@@INDEXES@@') {
+                        tableIndexes = schema[table]['@@INDEXES@@'];
+                        return;
+                    }
+
                     return addTableColumn(table, t, column);
+                });
+
+                _.each(tableIndexes, function (index) {
+                    t.index(index);
                 });
             });
         });
@@ -159,9 +173,7 @@ function createColumnMigration(...migrations) {
         }
     }
 
-    return async function columnMigration(options) {
-        const conn = options.transacting || options.connection;
-
+    return async function columnMigration(conn) {
         for (const migration of migrations) {
             await runColumnMigration(conn, migration);
         }

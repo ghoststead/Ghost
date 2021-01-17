@@ -1,6 +1,7 @@
 const MembersSSR = require('@tryghost/members-ssr');
 
 const MembersConfigProvider = require('./config');
+const MembersCSVImporter = require('./importer');
 const createMembersApiInstance = require('./api');
 const createMembersSettingsInstance = require('./settings');
 const {events} = require('../../lib/common');
@@ -9,6 +10,7 @@ const urlUtils = require('../../../shared/url-utils');
 const settingsCache = require('../settings/cache');
 const config = require('../../../shared/config');
 const ghostVersion = require('../../lib/ghost-version');
+const _ = require('lodash');
 
 const membersConfig = new MembersConfigProvider({
     config,
@@ -21,11 +23,25 @@ const membersConfig = new MembersConfigProvider({
 let membersApi;
 let membersSettings;
 
+function reconfigureMembersAPI() {
+    const reconfiguredMembersAPI = createMembersApiInstance(membersConfig);
+    reconfiguredMembersAPI.bus.on('ready', function () {
+        membersApi = reconfiguredMembersAPI;
+    });
+    reconfiguredMembersAPI.bus.on('error', function (err) {
+        logging.error(err);
+    });
+}
+
+const debouncedReconfigureMembersAPI = _.debounce(reconfigureMembersAPI, 600);
+
 // Bind to events to automatically keep subscription info up-to-date from settings
 events.on('settings.edited', function updateSettingFromModel(settingModel) {
     if (![
         'members_allow_free_signup',
         'members_from_address',
+        'members_support_address',
+        'members_reply_address',
         'stripe_publishable_key',
         'stripe_secret_key',
         'stripe_product_name',
@@ -39,17 +55,13 @@ events.on('settings.edited', function updateSettingFromModel(settingModel) {
         return;
     }
 
-    const reconfiguredMembersAPI = createMembersApiInstance(membersConfig);
-    reconfiguredMembersAPI.bus.on('ready', function () {
-        membersApi = reconfiguredMembersAPI;
-    });
-    reconfiguredMembersAPI.bus.on('error', function (err) {
-        logging.error(err);
-    });
+    debouncedReconfigureMembersAPI();
 });
 
 const membersService = {
     contentGating: require('./content-gating'),
+
+    checkHostLimit: require('./limit'),
 
     config: membersConfig,
 
@@ -79,7 +91,9 @@ const membersService = {
         getMembersApi: () => membersService.api
     }),
 
-    stripeConnect: require('./stripe-connect')
+    stripeConnect: require('./stripe-connect'),
+
+    importer: new MembersCSVImporter({storagePath: config.getContentPath('data')}, settingsCache, () => membersApi)
 };
 
 module.exports = membersService;

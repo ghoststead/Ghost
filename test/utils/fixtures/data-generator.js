@@ -2,7 +2,7 @@ const _ = require('lodash');
 const uuid = require('uuid');
 const ObjectId = require('bson-objectid');
 const moment = require('moment');
-const constants = require('../../../core/server/lib/constants');
+const constants = require('@tryghost/constants');
 const DataGenerator = {};
 
 DataGenerator.markdownToMobiledoc = function markdownToMobiledoc(content) {
@@ -49,7 +49,6 @@ DataGenerator.Content = {
             html: '<!--kg-card-begin: markdown--><h2 id=\"testing\">testing</h2>\n<p>mctesters</p>\n<ul>\n<li>test</li>\n<li>line</li>\n<li>items</li>\n</ul>\n<!--kg-card-end: markdown-->',
             plaintext: 'testing\nmctesters\n\n * test\n * line\n * items',
             feature_image: 'http://placekitten.com/500/200',
-            meta_description: 'test stuff',
             published_at: new Date('2015-01-03'),
             featured: true,
             uuid: '2ac6b4f6-e1f3-406c-9247-c94a0496d39d'
@@ -311,16 +310,27 @@ DataGenerator.Content = {
         {
             id: ObjectId.generate(),
             email: 'member1@test.com',
-            name: 'Mr Egg'
+            name: 'Mr Egg',
+            uuid: 'f6f91461-d7d8-4a3f-aa5d-8e582c40b340'
         },
         {
             id: ObjectId.generate(),
-            email: 'member2@test.com'
+            email: 'member2@test.com',
+            email_open_rate: 50,
+            uuid: 'f6f91461-d7d8-4a3f-aa5d-8e582c40b341'
         },
         {
             id: ObjectId.generate(),
             email: 'paid@test.com',
-            name: 'Egon Spengler'
+            name: 'Egon Spengler',
+            email_open_rate: 80,
+            uuid: 'f6f91461-d7d8-4a3f-aa5d-8e582c40b342'
+        },
+        {
+            id: ObjectId.generate(),
+            email: 'trialing@test.com',
+            name: 'Ray Stantz',
+            uuid: 'f6f91461-d7d8-4a3f-aa5d-8e582c40b343'
         }
     ],
 
@@ -344,6 +354,13 @@ DataGenerator.Content = {
             customer_id: 'cus_HR3tBmNhx4QsZY',
             name: 'Egon Spengler',
             email: 'paid@test.com'
+        },
+        {
+            id: ObjectId.generate(),
+            member_id: null, // relation added later
+            customer_id: 'cus_HR3tBmNhx4QsZZ',
+            name: 'Ray Stantz',
+            email: 'trialing@test.com'
         }
     ],
 
@@ -356,6 +373,21 @@ DataGenerator.Content = {
             status: 'active',
             cancel_at_period_end: false,
             current_period_end: '2020-07-09 19:01:20',
+            start_date: '2020-06-09 19:01:20',
+            default_payment_card_last4: '4242',
+            plan_nickname: 'Monthly',
+            plan_interval: 'month',
+            plan_amount: '1000',
+            plan_currency: 'usd'
+        },
+        {
+            id: ObjectId.generate(),
+            customer_id: 'cus_HR3tBmNhx4QsZZ',
+            subscription_id: 'sub_HR3tLNgGAHsa7c',
+            plan_id: '173e16a1fffa7d232b398e4a9b08d266a456ae8f3d23e5f11cc608ced6730bb9',
+            status: 'trialing',
+            cancel_at_period_end: true,
+            current_period_end: '2025-07-09 19:01:20',
             start_date: '2020-06-09 19:01:20',
             default_payment_card_last4: '4242',
             plan_nickname: 'Monthly',
@@ -418,9 +450,11 @@ DataGenerator.Content = {
             uuid: '6b6afda6-4b5e-4893-bff6-f16859e8349a',
             status: 'submitted',
             email_count: 2,
+            recipient_filter: 'all',
             subject: 'You got mailed!',
             html: '<p>Look! I\'m an email</p>',
             plaintext: 'Waba-daba-dab-da',
+            track_opens: false,
             submitted_at: moment().toDate()
         },
         {
@@ -428,12 +462,77 @@ DataGenerator.Content = {
             uuid: '365daa11-4bf0-4614-ad43-6346387ffa00',
             status: 'failed',
             error: 'Everything went south',
-            stats: '',
             email_count: 3,
             subject: 'You got mailed! Again!',
             html: '<p>What\'s that? Another email!</p>',
             plaintext: 'yes this is an email',
+            track_opens: false,
             submitted_at: moment().toDate()
+        }
+    ],
+
+    email_batches: [
+        {
+            id: ObjectId.generate(),
+            email_id: null, // emails[0] relation added later
+            // TODO: cleanup <> in provider_id
+            provider_id: '<email1@testing.mailgun.net>',
+            status: 'submitted'
+        }
+    ],
+
+    email_recipients: [
+        {
+            id: ObjectId.generate(),
+            email_id: null, // emails[0] relation added later
+            member_id: null, // members[0] relation added later
+            batch_id: null, // email_batches[0] relation added later
+            processed_at: moment().toDate(),
+            failed_at: null,
+            member_uuid: 'f6f91461-d7d8-4a3f-aa5d-8e582c40b340',
+            member_email: 'member1@test.com',
+            member_name: 'Mr Egg'
+        },
+        {
+            id: ObjectId.generate(),
+            email_id: null, // emails[0] relation added later
+            member_id: null, // members[1] relation added later
+            batch_id: null, // email_batches[0] relation added later
+            processed_at: moment().toDate(),
+            failed_at: null,
+            member_uuid: 'f6f91461-d7d8-4a3f-aa5d-8e582c40b341',
+            member_email: 'member2@test.com',
+            member_name: null
+        },
+        {
+            id: ObjectId.generate(),
+            email_id: null, // emails[0] relation added later
+            member_id: null, // members[2] relation added later
+            batch_id: null, // email_batches[0] relation added later
+            processed_at: moment().toDate(),
+            failed_at: null,
+            member_uuid: 'f6f91461-d7d8-4a3f-aa5d-8e582c40b342',
+            member_email: 'member1@test.com',
+            member_name: 'Mr Egg'
+        },
+        {
+            id: ObjectId.generate(),
+            email_id: null, // emails[0] relation added later
+            member_id: null, // members[3] relation added later
+            batch_id: null, // email_batches[0] relation added later
+            processed_at: moment().toDate(),
+            failed_at: null,
+            member_uuid: 'f6f91461-d7d8-4a3f-aa5d-8e582c40b343',
+            member_email: 'member1@test.com',
+            member_name: 'Mr Egg'
+        }
+    ],
+
+    snippets: [
+        {
+            id: ObjectId.generate(),
+            name: 'Test snippet 1',
+            mobiledoc: '{}'
         }
     ]
 };
@@ -444,7 +543,21 @@ DataGenerator.Content.api_keys[0].integration_id = DataGenerator.Content.integra
 DataGenerator.Content.api_keys[1].integration_id = DataGenerator.Content.integrations[0].id;
 DataGenerator.Content.emails[0].post_id = DataGenerator.Content.posts[0].id;
 DataGenerator.Content.emails[1].post_id = DataGenerator.Content.posts[1].id;
+DataGenerator.Content.email_batches[0].email_id = DataGenerator.Content.emails[0].id;
+DataGenerator.Content.email_recipients[0].batch_id = DataGenerator.Content.email_batches[0].id;
+DataGenerator.Content.email_recipients[0].email_id = DataGenerator.Content.email_batches[0].email_id;
+DataGenerator.Content.email_recipients[0].member_id = DataGenerator.Content.members[0].id;
+DataGenerator.Content.email_recipients[1].batch_id = DataGenerator.Content.email_batches[0].id;
+DataGenerator.Content.email_recipients[1].email_id = DataGenerator.Content.email_batches[0].email_id;
+DataGenerator.Content.email_recipients[1].member_id = DataGenerator.Content.members[1].id;
+DataGenerator.Content.email_recipients[2].batch_id = DataGenerator.Content.email_batches[0].id;
+DataGenerator.Content.email_recipients[2].email_id = DataGenerator.Content.email_batches[0].email_id;
+DataGenerator.Content.email_recipients[2].member_id = DataGenerator.Content.members[2].id;
+DataGenerator.Content.email_recipients[3].batch_id = DataGenerator.Content.email_batches[0].id;
+DataGenerator.Content.email_recipients[3].email_id = DataGenerator.Content.email_batches[0].email_id;
+DataGenerator.Content.email_recipients[3].member_id = DataGenerator.Content.members[3].id;
 DataGenerator.Content.members_stripe_customers[0].member_id = DataGenerator.Content.members[2].id;
+DataGenerator.Content.members_stripe_customers[1].member_id = DataGenerator.Content.members[3].id;
 
 DataGenerator.forKnex = (function () {
     function createBasic(overrides) {
@@ -713,6 +826,30 @@ DataGenerator.forKnex = (function () {
         });
     }
 
+    function createEmail(overrides) {
+        const newObj = _.cloneDeep(overrides);
+
+        return _.defaults(createBasic(newObj), {
+            submitted_at: new Date()
+        });
+    }
+
+    function createEmailBatch(overrides) {
+        const newObj = _.cloneDeep(overrides);
+        return _.defaults(newObj, {
+            id: ObjectId.generate(),
+            created_at: new Date(),
+            updated_at: new Date()
+        });
+    }
+
+    function createEmailRecipient(overrides) {
+        const newObj = _.cloneDeep(overrides);
+        return _.defaults(newObj, {
+            id: ObjectId.generate()
+        });
+    }
+
     const posts = [
         createPost(DataGenerator.Content.posts[0]),
         createPost(DataGenerator.Content.posts[1]),
@@ -774,6 +911,19 @@ DataGenerator.forKnex = (function () {
             id: ObjectId.generate(),
             user_id: DataGenerator.Content.users[7].id,
             role_id: DataGenerator.Content.roles[4].id
+        }
+    ];
+
+    const posts_meta = [
+        {
+            id: ObjectId.generate(),
+            post_id: DataGenerator.Content.posts[2].id,
+            meta_description: 'meta description for short and sweet'
+        },
+        {
+            id: ObjectId.generate(),
+            post_id: DataGenerator.Content.posts[3].id,
+            meta_description: 'meta description for draft post'
         }
     ];
 
@@ -903,14 +1053,26 @@ DataGenerator.forKnex = (function () {
     ];
 
     const emails = [
-        createBasic(DataGenerator.Content.emails[0]),
-        createBasic(DataGenerator.Content.emails[1])
+        createEmail(DataGenerator.Content.emails[0]),
+        createEmail(DataGenerator.Content.emails[1])
+    ];
+
+    const email_batches = [
+        createEmailBatch(DataGenerator.Content.email_batches[0])
+    ];
+
+    const email_recipients = [
+        createEmailRecipient(DataGenerator.Content.email_recipients[0]),
+        createEmailRecipient(DataGenerator.Content.email_recipients[1]),
+        createEmailRecipient(DataGenerator.Content.email_recipients[2]),
+        createEmailRecipient(DataGenerator.Content.email_recipients[3])
     ];
 
     const members = [
         createMember(DataGenerator.Content.members[0]),
         createMember(DataGenerator.Content.members[1]),
-        createMember(DataGenerator.Content.members[2])
+        createMember(DataGenerator.Content.members[2]),
+        createMember(DataGenerator.Content.members[3])
     ];
 
     const labels = [
@@ -925,11 +1087,17 @@ DataGenerator.forKnex = (function () {
     ];
 
     const members_stripe_customers = [
-        createBasic(DataGenerator.Content.members_stripe_customers[0])
+        createBasic(DataGenerator.Content.members_stripe_customers[0]),
+        createBasic(DataGenerator.Content.members_stripe_customers[1])
     ];
 
     const stripe_customer_subscriptions = [
-        createBasic(DataGenerator.Content.members_stripe_customers_subscriptions[0])
+        createBasic(DataGenerator.Content.members_stripe_customers_subscriptions[0]),
+        createBasic(DataGenerator.Content.members_stripe_customers_subscriptions[1])
+    ];
+
+    const snippets = [
+        createBasic(DataGenerator.Content.snippets[0])
     ];
 
     return {
@@ -955,10 +1123,12 @@ DataGenerator.forKnex = (function () {
         createInvite,
         createWebhook,
         createIntegration,
+        createEmail,
 
         invites,
         posts,
         tags,
+        posts_meta,
         posts_tags,
         posts_authors,
         roles,
@@ -968,11 +1138,14 @@ DataGenerator.forKnex = (function () {
         integrations,
         api_keys,
         emails,
+        email_batches,
+        email_recipients,
         labels,
         members,
         members_labels,
         members_stripe_customers,
-        stripe_customer_subscriptions
+        stripe_customer_subscriptions,
+        snippets
     };
 }());
 
