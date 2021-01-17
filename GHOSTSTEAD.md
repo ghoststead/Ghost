@@ -10,6 +10,7 @@ git pull
 git checkout steady
 git merge <ghost-tag-name> # e.g. 3.40.5
 git push
+yarn
 cd ../..
 ```
 
@@ -29,3 +30,10 @@ git merge <ghost-tag-name> # e.g. 3.40.5
 grunt test-all
 ```
 
+### Generate release zip file
+```shell
+grunt release
+```
+
+* copy zip from from `.dist/release` to root
+* build `docker` image
